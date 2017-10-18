@@ -1,0 +1,6 @@
+[submodule "Library"]
+	path = Library
+	url = git@github.com:drasticactions/Shaman.Scraping.git
+[submodule "MiiverseArchive"]
+	path = MiiverseArchive
+	url = git@github.com:drasticactions/miiversearchive.git
