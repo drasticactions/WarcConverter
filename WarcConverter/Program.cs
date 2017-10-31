@@ -24,7 +24,34 @@ namespace WarcConverter
     {
         static void Main(string[] args)
         {
-            Shaman.Runtime.SingleThreadSynchronizationContext.Run(MainAsyncImagesMesh);
+            Shaman.Runtime.SingleThreadSynchronizationContext.Run(MainAsyncUsers);
+        }
+
+        public static async Task MainAsyncUsers()
+        {
+            //if (!File.Exists("output2.txt"))
+            //    File.Create("output2.txt");
+            //var emotionList = new List<string>() { "happy", "like", "surprised", "fustrated", "puzzled" };
+            var directories = Directory.EnumerateDirectories("site-users-userlist");
+            foreach(var directory in directories)
+            {
+                Console.WriteLine(directory);
+                var items = WarcItem.ReadIndex($"{directory}/index.cdx").Where(x => x.ContentType.Contains("text/html")).ToList();
+                foreach (var item in items)
+                {
+                    using (var content = item.OpenStream())
+                    {
+                        var doc = new HtmlAgilityPack.HtmlDocument();
+                        doc.Load(content, System.Text.Encoding.UTF8);
+                        var postNode = doc.DocumentNode.Descendants("div").FirstOrDefault(n => n.GetAttributeValue("class", "") == "icon-container");
+                        if (postNode == null) continue;
+                        var avatar = postNode.Descendants("img").FirstOrDefault();
+                        if (avatar == null) continue;
+                        var avatarLink = avatar.GetAttributeValue("src", "");
+                        File.AppendAllText("output.txt", avatarLink + System.Environment.NewLine);
+                    }
+                }
+            }
         }
 
         public static async Task MainAsyncPosts()
