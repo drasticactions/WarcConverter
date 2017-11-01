@@ -24,8 +24,10 @@ namespace WarcConverter
     {
         static void Main(string[] args)
         {
-            Shaman.Runtime.SingleThreadSynchronizationContext.Run(MainAsyncUsers);
+            Shaman.Runtime.SingleThreadSynchronizationContext.Run(MainAsyncImageDownload);
         }
+
+
 
         public static async Task MainAsyncUsers()
         {
@@ -50,6 +52,24 @@ namespace WarcConverter
                         var avatarLink = avatar.GetAttributeValue("src", "");
                         File.AppendAllText("output.txt", avatarLink + System.Environment.NewLine);
                     }
+                }
+            }
+        }
+
+        public static async Task MainAsyncLink()
+        {
+            var items = WarcItem.ReadIndex("site/index.cdx").Where(x => x.ContentType.Contains("text/html")).ToList();
+            var context = new MiiverseContext("", "", "");
+            var url = "https://image.miiverse.nintendo.net/a/posts/AYMHAAABAABtUKlQN2DnMA/painting";
+            foreach (var item in items)
+            {
+                using (var content = item.OpenStream())
+                {
+                    var doc = new HtmlAgilityPack.HtmlDocument();
+                    doc.Load(content, System.Text.Encoding.UTF8);
+
+                    if (doc.DocumentNode.OuterHtml.Contains(url))
+                        Console.WriteLine(item.Url);
                 }
             }
         }
