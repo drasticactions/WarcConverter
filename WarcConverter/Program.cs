@@ -17,17 +17,77 @@ using System.Drawing;
 using Shaman.Scraping;
 using MiiverseArchive.Context;
 using MiiverseArchive.Entities.Post;
-
+using System.Windows.Forms;
 namespace WarcConverter
 {
+    public class ColorShirt {
+        public string ShirtColor { get; set; }
+
+        public int Total { get; set; }
+    }
+
+
     class Program
     {
-        static void Main(string[] args)
+        private static Color GetClosestColor(Color[] colorArray, Color baseColor)
         {
-            Shaman.Runtime.SingleThreadSynchronizationContext.Run(MainAsyncImageDownload);
+            var colors = colorArray.Select(x => new { Value = x, Diff = GetDiff(x, baseColor) }).ToList();
+            var min = colors.Min(x => x.Diff);
+            return colors.Find(x => x.Diff == min).Value;
         }
 
+        private static int GetDiff(Color color, Color baseColor)
+        {
+            int a = color.A - baseColor.A,
+                r = color.R - baseColor.R,
+                g = color.G - baseColor.G,
+                b = color.B - baseColor.B;
+            return a * a + r * r + g * g + b * b;
+        }
 
+        static void Main(string[] args)
+        {
+            Shaman.Runtime.SingleThreadSynchronizationContext.Run(MainImageColor);
+        }
+
+        public static async Task MainImageColor()
+        {
+            List<Color> targets = new List<Color>();
+            targets.Add(Color.Blue);
+            targets.Add(Color.DarkBlue);
+            targets.Add(Color.LightBlue);
+            targets.Add(Color.Yellow);
+            targets.Add(Color.Green);
+            targets.Add(Color.Pink);
+            targets.Add(Color.White);
+            targets.Add(Color.Black);
+            targets.Add(Color.Red);
+            targets.Add(Color.Purple);
+            targets.Add(Color.Orange);
+            var colorArray = targets.ToArray();
+            var items = WarcItem.ReadIndex(@"C:\WebsiteDumps\site-useravatars-surprised-miiverse.nintendo.net\index.cdx").Where(x => x.ContentType.Contains("image") && x.Url.Contains("cdn"));
+            var shirtList = new List<ColorShirt>();
+            foreach (var item in items)
+            {
+                using (var itemStream = item.OpenStream())
+                using (var bitmap = (Bitmap)Bitmap.FromStream(itemStream))
+                {
+                    var color = bitmap.GetPixel(47, 95);
+                    var closest = GetClosestColor(colorArray, color);
+                    var shirt = shirtList.FirstOrDefault(n => n.ShirtColor == closest.Name);
+                    if (shirt == null)
+                    {
+                        shirtList.Add(new ColorShirt() { ShirtColor = closest.Name, Total = 1 });
+                    }
+                    else
+                    {
+                        shirt.Total = shirt.Total + 1;
+                    }
+                }
+            }
+
+            File.WriteAllText("colorShirt.json", JsonConvert.SerializeObject(shirtList));
+        }
 
         public static async Task MainAsyncUsers()
         {
